@@ -422,7 +422,7 @@ Retry:
 			}
 
 			if res.Sent() && !isError {
-				SuccessLogPush(SucceededPush, token, req)
+				successLogPush(SucceededPush, token, req)
 				StatStorage.AddIosSuccess(1)
 			}
 			// free push slot

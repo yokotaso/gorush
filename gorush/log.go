@@ -181,7 +181,7 @@ func getLogPushEntry(status, token string, req PushNotification, errPush error, 
 	}
 }
 
-func SuccessLogPush(status, token string, req PushNotification) {
+func successLogPush(status, token string, req PushNotification) {
 	LogPush(status, token, req, nil, "")
 }
 

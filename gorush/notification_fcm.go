@@ -184,7 +184,7 @@ Retry:
 			continue
 		}
 
-		SuccessLogPush(SucceededPush, to, req)
+		successLogPush(SucceededPush, to, req)
 	}
 
 	// result from Send messages to topics
@@ -198,7 +198,7 @@ Retry:
 		LogAccess.Debug("Send Topic Message: ", to)
 		// Success
 		if res.MessageID != 0 {
-			SuccessLogPush(SucceededPush, to, req)
+			successLogPush(SucceededPush, to, req)
 		} else {
 			isError = true
 			// failure
