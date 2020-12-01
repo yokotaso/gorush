@@ -1,6 +1,7 @@
 package gorush
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/tls"
 	"encoding/base64"
@@ -28,13 +29,15 @@ var (
 
 // DialTLS is the default dial function for creating TLS connections for
 // non-proxied HTTPS requests.
-var DialTLS = func(cfg *tls.Config) func(network, addr string) (net.Conn, error) {
-	return func(network, addr string) (net.Conn, error) {
+type DialogTSLContextConfig = func(ctx context.Context, network, addr string) (net.Conn, error)
+
+var DialTLSContext = func(cfg *tls.Config) DialogTSLContextConfig {
+	return func(context context.Context, network, addr string) (net.Conn, error) {
 		dialer := &net.Dialer{
 			Timeout:   tlsDialTimeout,
 			KeepAlive: tcpKeepAlive,
 		}
-		return tls.DialWithDialer(dialer, network, addr, cfg)
+		return dialer.DialContext(context, network, addr)
 	}
 }
 
@@ -136,12 +139,15 @@ func newApnsClient(certificate tls.Certificate) (*apns2.Client, error) {
 		client = apns2.NewClient(certificate).Development()
 	}
 
-	if PushConf.Core.HTTPProxy == "" {
-		return client, nil
-	}
-
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{certificate},
+	}
+
+	var dialogTLSContext DialogTSLContextConfig
+	if PushConf.Core.HTTPProxy == "" {
+		dialogTLSContext = DialTLSContext(tlsConfig)
+	} else {
+		dialogTLSContext = nil
 	}
 
 	if len(certificate.Certificate) > 0 {
@@ -150,7 +156,7 @@ func newApnsClient(certificate tls.Certificate) (*apns2.Client, error) {
 
 	transport := &http.Transport{
 		TLSClientConfig: tlsConfig,
-		DialTLS:         DialTLS(tlsConfig),
+		DialTLSContext:  dialogTLSContext,
 		Proxy:           http.DefaultTransport.(*http.Transport).Proxy,
 		IdleConnTimeout: idleConnTimeout,
 	}
@@ -174,12 +180,15 @@ func newApnsTokenClient(token *token.Token) (*apns2.Client, error) {
 		client = apns2.NewTokenClient(token).Development()
 	}
 
+	var dialogTlsContext DialogTSLContextConfig
 	if PushConf.Core.HTTPProxy == "" {
-		return client, nil
+		dialogTlsContext = DialTLSContext(nil)
+	} else {
+		dialogTlsContext = nil
 	}
 
 	transport := &http.Transport{
-		DialTLS:         DialTLS(nil),
+		DialTLSContext:  dialogTlsContext,
 		Proxy:           http.DefaultTransport.(*http.Transport).Proxy,
 		IdleConnTimeout: idleConnTimeout,
 	}
